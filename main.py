@@ -284,7 +284,7 @@ Instructions:
     """
     
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
         
         # Build chat history for the model
         formatted_history = [
