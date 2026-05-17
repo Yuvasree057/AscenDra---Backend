@@ -13,7 +13,13 @@ class RecommendationEngine:
 
     def _load_data(self):
         try:
-            self.df = pd.read_csv(DATA_PATH)
+            # Check multiple possible locations for the dataset
+            path_1 = os.path.join(os.path.dirname(__file__), "Ultimate_Career_Analytics_Expanded.csv")
+            path_2 = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Ultimate_Career_Analytics_Expanded.csv")
+            
+            final_path = path_1 if os.path.exists(path_1) else path_2
+            
+            self.df = pd.read_csv(final_path)
             # Clean and normalize skills
             self.df['Skills'] = self.df['Skills'].fillna("").apply(lambda x: [s.strip().lower() for s in x.split(',')])
             # Career path grouping
