@@ -255,14 +255,12 @@ def chat_with_milliena(request: ChatRequest, user: models.User = Depends(get_cur
     # ---------------------------------------------------------
     api_key = "AIzaSyAPMcpSevFbLdhmZzrbdlOKJT8-HIn-1YY"
     
-    if not genai or not api_key:
-        return {
-            "response": "Hi there! I am Milliena's LLM engine. To activate my full ChatGPT-style global conversational brain, please start your backend with a valid Gemini API key.\n\n**Run this in your terminal:**\n\n```powershell\n$env:GEMINI_API_KEY=\"your-api-key-here\"\nuvicorn main:app --reload\n```\n\nYou can get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).",
-            "suggestion_cards": ["How to get an API Key?"]
-        }
+    if not api_key:
+        return {"response": "API Key is missing."}
 
     # Configure Gemini
-    genai.configure(api_key=api_key)
+    if genai:
+        genai.configure(api_key=api_key)
     
     # Construct Context Prompt
     system_prompt = f"""
