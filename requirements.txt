@@ -7,4 +7,5 @@ pandas
 numpy
 matplotlib
 scikit-learn
-requestsgoogle-generativeai
+requests
+google-generativeai
