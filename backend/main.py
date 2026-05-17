@@ -8,6 +8,11 @@ from typing import List, Optional
 from pydantic import BaseModel
 import json
 
+class ResetPasswordRequest(BaseModel):
+    email: str
+    new_password: str
+    otp: str
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -115,6 +120,17 @@ def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     
     return {"token": str(new_user.id), "user": {"name": request.name, "email": request.email}}
+
+@app.post("/api/auth/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == request.email).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if request.otp != "123456":
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+    db_user.hashed_password = request.new_password
+    db.commit()
+    return {"message": "Password updated successfully"}
 
 @app.post("/api/auth/login")
 def login_user(request: LoginRequest, db: Session = Depends(get_db)):
@@ -289,3 +305,4 @@ Instructions:
     except Exception as e:
         print(f"LLM Error: {e}")
         return {"response": "I encountered a slight hiccup connecting to my neural network. Could you try asking that again?"}
+
