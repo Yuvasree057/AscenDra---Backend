@@ -253,7 +253,7 @@ def chat_with_milliena(request: ChatRequest, user: models.User = Depends(get_cur
     # ---------------------------------------------------------
     # REAL LLM INTEGRATION (Google Gemini)
     # ---------------------------------------------------------
-    api_key = "AIzaSyAPMcpSevFbLdhmZzrbdlOKJT8-HIn-1YY"
+    api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyAPMcpSevFbLdhmZzrbdlOKJT8-HIn-1YY")
     
     if not api_key:
         return {"response": "API Key is missing."}
@@ -284,7 +284,7 @@ Instructions:
     """
     
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         
         # Build chat history for the model
         formatted_history = [
