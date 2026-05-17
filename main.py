@@ -302,5 +302,5 @@ Instructions:
         return {"response": response.text, "suggestion_cards": cards}
     except Exception as e:
         print(f"LLM Error: {e}")
-        return {"response": "I encountered a slight hiccup connecting to my neural network. Could you try asking that again?"}
+        return {"response": f"API Error: {str(e)}", "suggestion_cards": []}
 
