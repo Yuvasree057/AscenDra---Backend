@@ -284,10 +284,13 @@ Instructions:
     """
     
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash', system_instruction=system_prompt)
+        model = genai.GenerativeModel('gemini-pro')
         
         # Build chat history for the model
-        formatted_history = []
+        formatted_history = [
+            {"role": "user", "parts": [system_prompt]},
+            {"role": "model", "parts": ["Understood. I am Milliena. How can I help you today?"]}
+        ]
         for m in request.history:
             role = "user" if m.role == "user" else "model"
             formatted_history.append({"role": role, "parts": [m.text]})
