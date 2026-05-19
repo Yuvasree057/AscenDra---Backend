@@ -105,6 +105,9 @@ class ChatRequest(BaseModel):
     message: str
     history: List[ChatMessage] = []
 
+class MessageRequest(BaseModel):
+    content: str
+
 # --- AUTH ENDPOINTS ---
 @app.post("/api/auth/register")
 def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
@@ -256,6 +259,86 @@ def analyze_profile_old(request: AnalyzeRequest):
     careers = ai_engine.get_career_matches(request.skills, request.interests, limit=3)
     internships = ai_engine.get_internships(request.skills, request.education, limit=4)
     return {"status": "success", "data": {"career_matches": careers, "internships": internships}}
+
+# --- MESSAGING ENDPOINTS ---
+from sqlalchemy import or_, and_, desc
+
+@app.get("/api/messages/conversations")
+def get_conversations(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Find all unique users this user has messaged with
+    messages = db.query(models.Message).filter(
+        or_(models.Message.sender_id == user.id, models.Message.receiver_id == user.id)
+    ).order_by(desc(models.Message.timestamp)).all()
+    
+    convo_users = {}
+    for m in messages:
+        other_id = m.receiver_id if m.sender_id == user.id else m.sender_id
+        if other_id not in convo_users:
+            other_profile = db.query(models.Profile).filter(models.Profile.user_id == other_id).first()
+            if other_profile:
+                analysis = json.loads(other_profile.resume_path) if other_profile.resume_path else {}
+                convo_users[other_id] = {
+                    "id": other_id,
+                    "name": other_profile.full_name,
+                    "profile_picture": analysis.get("profile_picture"),
+                    "last_message": m.content,
+                    "timestamp": m.timestamp.isoformat()
+                }
+    
+    return {"conversations": list(convo_users.values())}
+
+@app.get("/api/messages/{other_user_id}")
+def get_messages(other_user_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    messages = db.query(models.Message).filter(
+        or_(
+            and_(models.Message.sender_id == user.id, models.Message.receiver_id == other_user_id),
+            and_(models.Message.sender_id == other_user_id, models.Message.receiver_id == user.id)
+        )
+    ).order_by(models.Message.timestamp).all()
+    
+    other_profile = db.query(models.Profile).filter(models.Profile.user_id == other_user_id).first()
+    if not other_profile:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    analysis = json.loads(other_profile.resume_path) if other_profile.resume_path else {}
+        
+    return {
+        "other_user": {
+            "id": other_user_id,
+            "name": other_profile.full_name,
+            "profile_picture": analysis.get("profile_picture")
+        },
+        "messages": [
+            {
+                "id": m.id,
+                "sender_id": m.sender_id,
+                "content": m.content,
+                "timestamp": m.timestamp.isoformat()
+            } for m in messages
+        ]
+    }
+
+@app.post("/api/messages/{other_user_id}")
+def send_message(other_user_id: int, request: MessageRequest, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    other_user = db.query(models.User).filter(models.User.id == other_user_id).first()
+    if not other_user:
+        raise HTTPException(status_code=404, detail="Receiver not found")
+        
+    new_message = models.Message(
+        sender_id=user.id,
+        receiver_id=other_user_id,
+        content=request.content
+    )
+    db.add(new_message)
+    db.commit()
+    db.refresh(new_message)
+    
+    return {
+        "id": new_message.id,
+        "sender_id": new_message.sender_id,
+        "content": new_message.content,
+        "timestamp": new_message.timestamp.isoformat()
+    }
 
 import os
 try:

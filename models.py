@@ -1,7 +1,18 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, Float
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, Float, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
+import datetime
 
+class Message(Base):
+    __tablename__ = "messages"
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    receiver_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(Text)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    sender = relationship("User", foreign_keys=[sender_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
