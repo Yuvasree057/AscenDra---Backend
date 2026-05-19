@@ -18,6 +18,23 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ASCENDRA API", version="1.0.0")
 
+@app.on_event("startup")
+def update_schema():
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            # Try to add missing columns to profiles table
+            try:
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN resume_url VARCHAR;"))
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN is_public BOOLEAN DEFAULT TRUE;"))
+            except Exception:
+                pass
+    except Exception as e:
+        print("Schema update error:", e)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # For development
