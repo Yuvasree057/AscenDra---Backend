@@ -81,6 +81,8 @@ class AnalyzeRequest(BaseModel):
     bio: Optional[str] = None
     linkedin: Optional[str] = None
     github: Optional[str] = None
+    resume_url: Optional[str] = None
+    is_public: Optional[bool] = True
     interests: List[str]
     skills: List[str]
     profile_picture: Optional[str] = None
@@ -163,6 +165,8 @@ def get_profile(user: models.User = Depends(get_current_user), db: Session = Dep
         "location": profile.location or "",
         "linkedin": profile.linkedin_url or "",
         "github": profile.github_url or "",
+        "resume_url": profile.resume_url or "",
+        "is_public": profile.is_public if profile.is_public is not None else True,
         "streak_days": profile.streak_days,
         "analysis_data": json.loads(profile.resume_path) if profile.resume_path else None,
         "profile_picture": json.loads(profile.resume_path).get("profile_picture") if profile.resume_path else None
@@ -180,8 +184,10 @@ def update_profile(request: AnalyzeRequest, user: models.User = Depends(get_curr
     
     if request.full_name: profile.full_name = request.full_name
     if request.location: profile.location = request.location
-    if request.linkedin: profile.linkedin_url = request.linkedin
-    if request.github: profile.github_url = request.github
+    if request.linkedin is not None: profile.linkedin_url = request.linkedin
+    if request.github is not None: profile.github_url = request.github
+    if request.resume_url is not None: profile.resume_url = request.resume_url
+    if request.is_public is not None: profile.is_public = request.is_public
     
     # Run analysis
     careers = ai_engine.get_career_matches(request.skills, request.interests, limit=3)
@@ -223,6 +229,27 @@ def update_profile(request: AnalyzeRequest, user: models.User = Depends(get_curr
     db.commit()
     
     return {"status": "success", "data": analysis_data}
+
+@app.get("/api/profile/public/{user_id}")
+def get_public_profile(user_id: int, db: Session = Depends(get_db)):
+    profile = db.query(models.Profile).filter(models.Profile.user_id == user_id).first()
+    if not profile or not profile.is_public:
+        raise HTTPException(status_code=404, detail="Public profile not found")
+        
+    analysis_data = json.loads(profile.resume_path) if profile.resume_path else {}
+    
+    return {
+        "id": user_id,
+        "name": profile.full_name,
+        "education": profile.education_level or "",
+        "bio": profile.bio or "",
+        "location": profile.location or "",
+        "linkedin_url": profile.linkedin_url or "",
+        "github_url": profile.github_url or "",
+        "resume_url": profile.resume_url or "",
+        "skills": analysis_data.get("skills", []),
+        "profile_picture": analysis_data.get("profile_picture")
+    }
 @app.post("/api/analyze")
 def analyze_profile_old(request: AnalyzeRequest):
     # Keep old endpoint for backwards compatibility if needed

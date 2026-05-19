@@ -23,6 +23,8 @@ class Profile(Base):
     github_url = Column(String)
     linkedin_url = Column(String)
     resume_path = Column(String)
+    resume_url = Column(String, nullable=True)
+    is_public = Column(Boolean, default=True)
     streak_days = Column(Integer, default=0)
     
     user = relationship("User", back_populates="profile")
