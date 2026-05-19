@@ -200,7 +200,7 @@ def update_profile(request: AnalyzeRequest, user: models.User = Depends(get_curr
         db.add(profile)
     
     profile.education_level = request.education
-    profile.bio = request.bio if request.bio else ", ".join(request.interests)
+    if request.bio is not None: profile.bio = request.bio
     
     if request.full_name: profile.full_name = request.full_name
     if request.location: profile.location = request.location
@@ -249,6 +249,30 @@ def update_profile(request: AnalyzeRequest, user: models.User = Depends(get_curr
     db.commit()
     
     return {"status": "success", "data": analysis_data}
+
+@app.get("/api/profile/explore")
+def explore_profiles(search: str = "", db: Session = Depends(get_db)):
+    from sqlalchemy import or_
+    query = db.query(models.Profile).filter(models.Profile.is_public == True)
+    if search:
+        query = query.filter(
+            or_(
+                models.Profile.full_name.ilike(f"%{search}%"),
+                models.Profile.bio.ilike(f"%{search}%")
+            )
+        )
+    profiles = query.limit(50).all()
+    results = []
+    for p in profiles:
+        analysis_data = json.loads(p.resume_path) if p.resume_path else {}
+        results.append({
+            "id": p.user_id,
+            "name": p.full_name,
+            "bio": p.bio or "Career Explorer",
+            "skills": analysis_data.get("skills", [])[:3],
+            "profile_picture": analysis_data.get("profile_picture")
+        })
+    return {"profiles": results}
 
 @app.get("/api/profile/public/{user_id}")
 def get_public_profile(user_id: int, db: Session = Depends(get_db)):
