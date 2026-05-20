@@ -275,6 +275,9 @@ def explore_profiles(search: str = "", db: Session = Depends(get_db)):
             "location": p.location,
             "education": p.education_level,
             "top_match": top_match,
+            "linkedin_url": p.linkedin_url,
+            "github_url": p.github_url,
+            "resume_url": p.resume_url,
             "skills": analysis_data.get("skills", [])[:5],
             "profile_picture": analysis_data.get("profile_picture")
         })
