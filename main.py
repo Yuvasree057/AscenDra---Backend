@@ -265,11 +265,17 @@ def explore_profiles(search: str = "", db: Session = Depends(get_db)):
     results = []
     for p in profiles:
         analysis_data = json.loads(p.resume_path) if p.resume_path else {}
+        career_matches = analysis_data.get("career_matches", [])
+        top_match = career_matches[0]["career_path"] if career_matches else None
+        
         results.append({
             "id": p.user_id,
             "name": p.full_name,
-            "bio": p.bio or "Career Explorer",
-            "skills": analysis_data.get("skills", [])[:3],
+            "bio": p.bio or "",
+            "location": p.location,
+            "education": p.education_level,
+            "top_match": top_match,
+            "skills": analysis_data.get("skills", [])[:5],
             "profile_picture": analysis_data.get("profile_picture")
         })
     return {"profiles": results}
